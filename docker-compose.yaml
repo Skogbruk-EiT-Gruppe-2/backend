@@ -31,23 +31,6 @@ services:
         max-size: '1k'
         max-file: '3'
 
-  analysis:
-    build: ./analysis
-    container_name: analysis
-    depends_on:
-      - db
-    networks:
-      - app-network
-    volumes:
-      - type: bind
-        source: /data
-        target: /data
-    logging:
-      driver: 'json-file'
-      options:
-        max-size: '1k'
-        max-file: '3'
-
 networks:
   app-network:
     driver: bridge
