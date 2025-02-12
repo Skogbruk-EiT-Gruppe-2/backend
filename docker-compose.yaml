@@ -14,12 +14,20 @@ services:
       - app-network
 
   api-server:
-    build: .
+    build: ./api-server
     container_name: api-server
     depends_on:
       - db
     ports:
       - '443:443'
+    networks:
+      - app-network
+
+  analysis:
+    build: ./analysis
+    container_name: analysis
+    depends_on:
+      - db
     networks:
       - app-network
 
