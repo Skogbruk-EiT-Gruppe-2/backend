@@ -12,6 +12,11 @@ services:
       - '27017:27017'
     networks:
       - app-network
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '1k'
+        max-file: '3'
 
   api-server:
     build: ./api-server
@@ -22,6 +27,11 @@ services:
       - '443:443'
     networks:
       - app-network
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '1k'
+        max-file: '3'
 
   analysis:
     build: ./analysis
@@ -30,6 +40,15 @@ services:
       - db
     networks:
       - app-network
+    volumes:
+      - type: bind
+        source: /data
+        target: /data
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '1k'
+        max-file: '3'
 
 networks:
   app-network:

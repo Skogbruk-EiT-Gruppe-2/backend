@@ -2,6 +2,8 @@ import requests
 from os import environ
 from db import db
 import time
+from pathlib import Path
+from birdnet import SpeciesPredictions, predict_species_within_audio_file
 
 INTERVAL_S = 300
 BATCH_SIZE = 10
@@ -44,7 +46,22 @@ def extract(blob):
         print(f"Error: {response.status_code} - {response.text}")
 
 def analyse(file_path: str):
-    pass
+
+    audio_path = Path("great_tit_parus_major.mp3")
+    predictions = SpeciesPredictions(predict_species_within_audio_file(audio_path))
+
+    analysis = []
+
+    # Loop over available intervals and print predictions
+    for interval, preds in predictions.items():
+        print(f"Predictions for interval {interval}:")
+        prediction_items = list(preds.items())
+        for prediction, confidence in prediction_items:
+            print(f"Predicted '{prediction}' with confidence {confidence:.2f}")
+        
+        analysis.append(prediction_items)
+    
+    return analysis
 
 def store_analysis(analysis):
     pass
