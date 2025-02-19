@@ -6,14 +6,12 @@ services:
     environment:
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: root
-    ports:
-      - '27017:27017'
     networks:
       - app-network
     logging:
       driver: 'json-file'
       options:
-        max-size: '1k'
+        max-size: '20k'
         max-file: '3'
 
   api-server:
@@ -25,10 +23,13 @@ services:
       - '443:443'
     networks:
       - app-network
+    environment:
+      # Use the host "mongodb" to connect to the internal MongoDB container
+      MONGO_URI: 'mongodb://mongodb:27017'
     logging:
       driver: 'json-file'
       options:
-        max-size: '1k'
+        max-size: '20k'
         max-file: '3'
 
 networks:
