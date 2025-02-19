@@ -36,18 +36,26 @@ async def post_observation(observation: Observation):
     response = {"id": inserted_result.inserted_id}
     return convert_objectid(response)
 
+# Get logs from the database (with pagination, sorted by "received" timestamp)
+@app.get("/logs")
+async def get_logs(page: int = 1, limit: int = 10):
+    collection = db["logs"]
+    results = collection.find().sort("received", -1).skip((page - 1) * limit).limit(limit)
+    result_list = list(results)
+    return convert_objectid(result_list)
+
 @app.post("/span/webhook")
 async def receive_span_messages(body: dict):
     print(body)
 
     # Validate the body
-    try:
-        WebhookPayload.model_validate(body)
-    except ValidationError as e:
-        # Return a 422 response if the body is invalid
-        return JSONResponse(status_code=422, content={"error": "Could not validate request body"})
+    # try:
+    #     WebhookPayload.model_validate(body)
+    # except ValidationError as e:
+    #     # Return a 422 response if the body is invalid
+    #     return JSONResponse(status_code=422, content={"error": "Could not validate request body"})
 
-    messages = body.messages
+    messages = body["messages"]
     db['logs'].insert_many(messages)
     print("Inserted messages into logs collection")
     return
