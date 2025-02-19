@@ -1,9 +1,9 @@
 from fastapi import FastAPI
 from fastapi.encoders import jsonable_encoder
+from pydantic import ValidationError
 from app.models import *
 from app.db import db
 from bson import ObjectId
-from fastapi.middleware.cors import CORSMiddleware
 
 def convert_objectid(doc):
     """Recursively converts ObjectId fields to strings in a document."""
@@ -14,18 +14,6 @@ def convert_objectid(doc):
     return doc
 
 app = FastAPI()
-
-origins = [
-    "*", # Allow all origins
-]
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 @app.get("/")
 async def root():
@@ -48,7 +36,19 @@ async def post_observation(observation: Observation):
     return convert_objectid(response)
 
 @app.post("/span/webhook")
-async def receive_span_messages(payload: SpanPayload):
-    messages = payload.messages
+async def receive_span_messages(msg: SpanMessage):
+    print(msg)
+    payload_str = msg.payload
+
+    # Convert the payload to a JSON object
+    payload_json = jsonable_encoder(payload_str)
+
+    # Validate the payload
+    try:
+        WebhookPayload.model_validate(payload_json)
+    except ValidationError as e:
+        return {"error": e.errors()}
+
+    messages = payload_json.messages
     db['logs'].insert_many(messages)
     return
