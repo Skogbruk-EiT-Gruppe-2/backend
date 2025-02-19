@@ -25,7 +25,10 @@ services:
       - app-network
     environment:
       # Use the host "mongodb" to connect to the internal MongoDB container
-      MONGO_URI: 'mongodb://mongodb:27017'
+      MONGO_URI: 'mongodb:27017'
+      MONGO_DBNAME: 'observationdb'
+      MONGO_USERNAME: 'root'
+      MONGO_PASSWORD: 'root'
     logging:
       driver: 'json-file'
       options:
