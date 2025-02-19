@@ -6,6 +6,8 @@ services:
     environment:
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: root
+    volumes:
+      - mongodb_data:/data/db # added volume mapping for persisting data
     networks:
       - app-network
     logging:
@@ -38,3 +40,6 @@ services:
 networks:
   app-network:
     driver: bridge
+
+volumes:
+  mongodb_data: # added persistent volume declaration
