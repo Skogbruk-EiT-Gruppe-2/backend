@@ -3,6 +3,7 @@ from fastapi.encoders import jsonable_encoder
 from app.models import *
 from app.db import db
 from bson import ObjectId
+from fastapi.middleware.cors import CORSMiddleware
 
 def convert_objectid(doc):
     """Recursively converts ObjectId fields to strings in a document."""
@@ -13,6 +14,18 @@ def convert_objectid(doc):
     return doc
 
 app = FastAPI()
+
+origins = [
+    "*", # Allow all origins
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.get("/")
 async def root():
