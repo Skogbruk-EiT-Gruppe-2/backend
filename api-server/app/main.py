@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.encoders import jsonable_encoder
+from fastapi.responses import JSONResponse
 from pydantic import ValidationError
 from app.models import *
 from app.db import db
@@ -36,19 +37,17 @@ async def post_observation(observation: Observation):
     return convert_objectid(response)
 
 @app.post("/span/webhook")
-async def receive_span_messages(msg: SpanMessage):
-    print(msg)
-    payload_str = msg.payload
+async def receive_span_messages(body: dict):
+    print(body)
 
-    # Convert the payload to a JSON object
-    payload_json = jsonable_encoder(payload_str)
-
-    # Validate the payload
+    # Validate the body
     try:
-        WebhookPayload.model_validate(payload_json)
+        WebhookPayload.model_validate(body)
     except ValidationError as e:
-        return {"error": e.errors()}
+        # Return a 422 response if the body is invalid
+        return JSONResponse(status_code=422, content={"error": "Could not validate request body"})
 
-    messages = payload_json.messages
+    messages = body.messages
     db['logs'].insert_many(messages)
+    print("Inserted messages into logs collection")
     return
