@@ -71,3 +71,8 @@ async def receive_span_messages(body: dict):
     db['logs'].insert_many(messages)
     print("Inserted messages into logs collection")
     return
+
+# Upload an audio file as a blob (array of uint8)
+@app.post("/upload-audio")
+async def upload_audio_file(blob: list[int]):
+    print(blob)

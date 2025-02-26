@@ -125,5 +125,3 @@ class SpanMessage(BaseModel):
     mqttMetaData: Optional[SpanMqttMetaData] = None
     gatewayMetaData: Dict[str, str]
     gatewayId: str
-
-
