@@ -169,3 +169,8 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# Audio files uploaded to the server
+audio_files/
+
+**/.DS_Store
