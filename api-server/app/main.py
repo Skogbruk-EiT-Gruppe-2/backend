@@ -86,16 +86,16 @@ async def upload_audio_file(request: Request):
         imsi = body[:15].decode("utf-8")
         print(f"IMSI: {imsi}")
 
-        # Get the next 2 bytes as the file number (unsigned int16)
-        file_number = int.from_bytes(body[15:17], "big")
-        print(f"File number: {file_number}")
+        # Get the next 16 bytes as a uuid (128-bit)
+        file_id = body[15:31].hex()
+        print(f"UUID: {file_id}")
 
         # Get the next 2 bytes as the sequence number (unsigned int16)
-        sequence_number = int.from_bytes(body[17:19], "big")
+        sequence_number = int.from_bytes(body[31:33], "big")
         print(f"Sequence number: {sequence_number}")
 
         # Get the rest of the bytes as the audio blob
-        blob = body[17:]
+        blob = body[33:]
 
         # Check for an end of file marker (0xFF 0xD9)
         eof_marker = b"\xFF\xD9"
@@ -112,7 +112,7 @@ async def upload_audio_file(request: Request):
         # Save in the 'segmented/{file_number}' directory for later reconstruction
         # Use name format: '{sequence_number}.bin'
         # Create the directories if they do not exist
-        directory = f"audio_files/{imsi}/segmented/{file_number}"
+        directory = f"audio_files/{imsi}/segmented/{file_id}"
         os.makedirs(directory, exist_ok=True)
         file_path = f"{directory}/{sequence_number}.bin"
         with open(file_path, "wb") as file:
@@ -122,10 +122,10 @@ async def upload_audio_file(request: Request):
         if is_last_blob:
             # Combine all the blobs into a single file and save it under the 'audio_files/{imsi}' directory
             # Name format: '{file_number}.bin'
-            combined_file_path = f"audio_files/{imsi}/{file_number}.bin"
+            combined_file_path = f"audio_files/{imsi}/{file_id}.bin"
             with open(combined_file_path, "wb") as file:
                 for i in range(sequence_number + 1):
-                    segment_path = f"audio_files/{imsi}/segmented/{file_number}/{i}.bin"
+                    segment_path = f"audio_files/{imsi}/segmented/{file_id}/{i}.bin"
                     with open(segment_path, "rb") as segment_file:
                         segment = segment_file.read()
                         file.write(segment)
