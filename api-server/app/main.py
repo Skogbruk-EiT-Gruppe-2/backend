@@ -84,31 +84,22 @@ async def upload_audio_file(request: Request, background_tasks: BackgroundTasks)
         print(f"Received {len(body)} bytes")
         print(body)
 
-        # Get the first bytes as the imsi of the device
-        imsi = body[:15].decode("utf-8")
-        print(f"IMSI: {imsi}")
+        # Get the IMSI from the X-IMSI header
+        imsi = request.headers["X-IMSI"]
 
-        # Get the next 16 bytes as a uuid (128-bit)
-        file_id = body[15:31].hex()
-        print(f"UUID: {file_id}")
+        # Get the sequence number from the X-Sequence-Number header
+        sequence_number = int(request.headers["X-Sequence-Number"])
 
-        # Get the next 2 bytes as the sequence number (unsigned int16)
-        sequence_number = int.from_bytes(body[31:33], "big")
-        print(f"Sequence number: {sequence_number}")
+        # Get the file ID from the X-File-ID header
+        file_id = request.headers["X-File-ID"]
 
-        # Get the rest of the bytes as the audio blob
-        blob = body[33:]
+        # Get end of file (true/false) from the X-End-Of-File header
+        end_of_file = request.headers["X-End-Of-File"]
+        # Check if this is the last blob in the sequence
+        is_last_blob = end_of_file == "true"
 
-        # Check for an end of file marker (0xFF 0xD9)
-        eof_marker = b"\xFF\xD9"
-        is_last_blob = False
-        if blob.endswith(eof_marker):
-            # print("End of file marker found")
-            blob = blob[:-2]
-            is_last_blob = True
-        else:
-            # print("End of file marker not found")
-            pass
+        # Get the blob from the request body
+        blob = body
 
         # Save the blob to a file under the audio_files directory under the IMSI directory (create if not exists)
         # Save in the 'segmented/{file_number}' directory for later reconstruction
@@ -148,13 +139,61 @@ async def upload_audio_file(request: Request, background_tasks: BackgroundTasks)
                 "file_path": None
             }
 
+            collection = db["observations"]
+            collection.insert_one(observation)
+            print(f"Created observation for {imsi} with ID {file_id}")
+
         if is_last_blob:
             # Combine all the blobs into a single file and save it under the 'audio_files/{imsi}' directory
-            # Name format: '{file_number}.bin'
-            combined_file_path = f"audio_files/{imsi}/{file_id}.bin"
+            # Name format: '{file_number}.wav'
+            # Get the sample rate and bits per sample from the headers of the request (X-Sample-Rate and X-Bits-Per-Sample)
+            sample_rate = int(request.headers["X-Sample-Rate"])
+            bits_per_sample = int(request.headers["X-Bits-Per-Sample"])
+
+            # Assume mono audio for now
+            channels = 1
+
+            # Combine the segmented files into a single file
+            combined_file_path = f"audio_files/{imsi}/{file_id}.wav"
             with open(combined_file_path, "wb") as file:
+                
+                # Write the WAV header
+                # https://docs.fileformat.com/audio/wav/
+                # RIFF header
+                file.write(b"RIFF")
+                # File size (filled in later)
+                file.write(b"\x00\x00\x00\x00")
+                # WAVE header
+                file.write(b"WAVE")
+                # fmt subchunk
+                file.write(b"fmt ")
+                # Subchunk size (16 for PCM)
+                file.write(b"\x10\x00\x00\x00")
+                # Audio format (1 for PCM)
+                file.write(b"\x01\x00")
+                # Number of channels
+                file.write(channels.to_bytes(2, "little"))
+                # Sample rate
+                file.write(sample_rate.to_bytes(4, "little"))
+                # Byte rate
+                byte_rate = sample_rate * channels * bits_per_sample // 8
+                file.write(byte_rate.to_bytes(4, "little"))
+                # Block align
+                block_align = channels * bits_per_sample // 8
+                file.write(block_align.to_bytes(2, "little"))
+                # Bits per sample
+                file.write(bits_per_sample.to_bytes(2, "little"))
+                # data subchunk
+                file.write(b"data")
+                # Subchunk size (filled in later)
+                file.write(b"\x00\x00\x00\x00")
+
+                # Print header for debugging
+                print(f"Wrote WAV header for {sample_rate} Hz, {bits_per_sample} bits per sample, {channels} channels")
+
+                # Write the audio data (PCM)
                 for i in range(sequence_number + 1):
-                    segment_path = f"audio_files/{imsi}/segmented/{file_id}/{i}.bin"
+                    segment_path = f"audio_files/{imsi}/segmented/{file_id}/{i}.wav"
                     with open(segment_path, "rb") as segment_file:
                         segment = segment_file.read()
                         file.write(segment)

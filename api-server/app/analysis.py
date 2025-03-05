@@ -59,7 +59,7 @@ def process_audio_file(file_path, db, observation_id):
             update = {"$set": {"value": {"classification": classification}, "file_path": file_path}}
             collection.update(query, update)
     except Exception as e:
-        print(f"Error processing audio file: {e}")
+        print(f"Error processing audio file at {file_path}: {e}")
         
 
 if __name__ == "__main__":
