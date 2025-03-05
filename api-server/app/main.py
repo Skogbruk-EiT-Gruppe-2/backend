@@ -1,4 +1,5 @@
-from fastapi import FastAPI, Request
+from datetime import datetime
+from fastapi import FastAPI, Request, BackgroundTasks
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from pydantic import ValidationError
@@ -7,6 +8,7 @@ from app.db import db
 from bson import ObjectId
 from fastapi.middleware.cors import CORSMiddleware
 import os
+from app.analysis import process_audio_file
 
 def convert_objectid(doc):
     """Recursively converts ObjectId fields to strings in a document."""
@@ -75,7 +77,7 @@ async def receive_span_messages(body: dict):
 
 # Upload an audio file as a blob (array of uint8)
 @app.post("/upload-audio")
-async def upload_audio_file(request: Request):
+async def upload_audio_file(request: Request, background_tasks: BackgroundTasks):
     try:
         body = await request.body()
 
@@ -119,6 +121,33 @@ async def upload_audio_file(request: Request):
             file.write(blob)
         print(f"Saved blob to {file_path}")
 
+        is_first_blob = sequence_number == 0
+        if is_first_blob:
+            # Get device information from the database
+            collection = db["devices"]
+            device = collection.find_one({"imsi": imsi})
+            if device is not None:
+                latitude = device["latitude"]
+                longitude = device["longitude"]
+            else:
+                latitude = None
+                longitude = None
+
+            # Create entry in the database for the observation
+            observation = {
+                "_id": file_id,
+                "imsi": imsi,
+                "value": {
+                    "classification": None,
+                    "is_redlisted": None,
+                },
+                "device_id": None,
+                "timestamp": datetime.now(),
+                "latitude": latitude,
+                "longitude": longitude,
+                "file_path": None
+            }
+
         if is_last_blob:
             # Combine all the blobs into a single file and save it under the 'audio_files/{imsi}' directory
             # Name format: '{file_number}.bin'
@@ -131,6 +160,8 @@ async def upload_audio_file(request: Request):
                         file.write(segment)
 
             print(f"Combined all segments into {combined_file_path}")
+
+            background_tasks.add_task(process_audio_file, combined_file_path, db, file_id)
 
         return {"message": "Audio file uploaded successfully"}
     except Exception as e:
