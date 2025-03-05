@@ -50,18 +50,36 @@ def analyse(file_path: str, confidence_threshold: float = 0.5):
 
 def process_audio_file(file_path, db, observation_id):
     try:
+        # Check that the file exists
+        if not os.path.exists(file_path):
+            print(f"File not found at {file_path}")
+            return
+
         classification = analyse(file_path)
         
         if classification is not None:
             # Upsert the observation with the classification
+            # Classification:
+            # {
+            #   "value": {
+            #     "classification": "bird",
+            #     "is_redlisted": true
+            #   },
+            #   "file_path": file_path
+            # }
             collection = db["observations"]
             query = {"_id": observation_id}
-            update = {"$set": {"value": {"classification": classification}, "file_path": file_path}}
-            collection.update(query, update)
+            update = {
+                "$set": {
+                    "value.classification": classification,
+                    "file_path": file_path
+                }
+            }
+            collection.update_one(query, update, upsert=True)
     except Exception as e:
         print(f"Error processing audio file at {file_path}: {e}")
         
 
 if __name__ == "__main__":
-    analysis = analyse("XC949406 - Kjøttmeis - Parus major.mp3")
+    analysis = process_audio_file("81f3501c-14e3-43d7-a0e2-cc88d33c6615.wav", None, None)
     print(analysis)

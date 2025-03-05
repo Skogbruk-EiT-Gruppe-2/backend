@@ -81,9 +81,6 @@ async def upload_audio_file(request: Request, background_tasks: BackgroundTasks)
     try:
         body = await request.body()
 
-        print(f"Received {len(body)} bytes")
-        print(body)
-
         # Get the IMSI from the X-IMSI header
         imsi = request.headers["X-IMSI"]
 
@@ -193,10 +190,19 @@ async def upload_audio_file(request: Request, background_tasks: BackgroundTasks)
 
                 # Write the audio data (PCM)
                 for i in range(sequence_number + 1):
-                    segment_path = f"audio_files/{imsi}/segmented/{file_id}/{i}.wav"
+                    segment_path = f"audio_files/{imsi}/segmented/{file_id}/{i}.bin"
                     with open(segment_path, "rb") as segment_file:
                         segment = segment_file.read()
                         file.write(segment)
+
+                # Fill in the file size and data size in the header
+                file_size = os.path.getsize(combined_file_path) - 8
+                data_size = os.path.getsize(combined_file_path) - 44
+                with open(combined_file_path, "r+b") as file:
+                    file.seek(4)
+                    file.write(file_size.to_bytes(4, "little"))
+                    file.seek(40)
+                    file.write(data_size.to_bytes(4, "little"))
 
             print(f"Combined all segments into {combined_file_path}")
 
