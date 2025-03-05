@@ -36,9 +36,9 @@ async def root():
     return {"message": "Hello World"}
 
 @app.get("/observations")
-async def get_observations():
+async def get_observations(from_date: str = None):
     collection = db["observations"]
-    results = collection.find()
+    results = collection.find({"timestamp": {"$gte": datetime.fromisoformat(from_date)}}) if from_date else collection.find()
     result_list = list(results)
     return convert_objectid(result_list)
 
