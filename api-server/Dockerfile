@@ -4,5 +4,5 @@ WORKDIR /app
 COPY ./requirements.txt ./requirements.txt
 RUN pip install -r requirements.txt
 COPY ./app ./app
-EXPOSE 443
-CMD ["fastapi", "run", "app/main.py", "--port", "443"]
+EXPOSE 80
+CMD ["fastapi", "run", "app/main.py", "--port", "80"]

@@ -22,7 +22,7 @@ services:
     depends_on:
       - db
     ports:
-      - '443:443'
+      - '80:80'
     volumes:
       - ./audio_files:/app/audio_files # Add this line to mount the local directory
     networks:
