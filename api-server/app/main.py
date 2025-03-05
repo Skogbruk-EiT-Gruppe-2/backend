@@ -1,7 +1,7 @@
 from datetime import datetime
 from fastapi import FastAPI, Request, BackgroundTasks
 from fastapi.encoders import jsonable_encoder
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 from pydantic import ValidationError
 from app.models import *
 from app.db import db
@@ -211,3 +211,11 @@ async def upload_audio_file(request: Request, background_tasks: BackgroundTasks)
     except Exception as e:
         print(e)
         return JSONResponse(status_code=500, content={"error": "An error occurred while processing the audio file"})
+    
+@app.get("/audio_files/{imsi}/{file_id}")
+async def get_audio_file(imsi: str, file_id: str):
+    print(f"GET /audio_files/{imsi}/{file_id}")
+    file_path = f"audio_files/{imsi}/{file_id}.wav"
+    if not os.path.exists(file_path):
+        return JSONResponse(status_code=404, content={"error": "File not found"})
+    return FileResponse(file_path)
