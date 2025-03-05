@@ -129,7 +129,6 @@ async def upload_audio_file(request: Request, background_tasks: BackgroundTasks)
                     "classification": None,
                     "is_redlisted": None,
                 },
-                "device_id": None,
                 "timestamp": datetime.now(),
                 "latitude": latitude,
                 "longitude": longitude,
